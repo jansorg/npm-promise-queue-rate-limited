@@ -2,10 +2,6 @@
     "use strict";
     var Promise = require("bluebird");
 
-    function nullCallback() {
-        //empty callback, acts as null pattern
-    }
-
     /**
      * Creates a new rate limited queue. The queue is created with stopped state, i.e. you have to call start() to run jobs.
      * @param {number} maxCallsPerSecond=1 - The rate limit of this queue in maximum calls per seconds which may be executed at any time. Pass values less than 1 to have less than one call per second, e.g. 1/3 for 3 one call in three seconds at maximum.

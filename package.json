@@ -4,7 +4,7 @@
   "description": "Enhanced version of queue-rate-limited which uses Bluebird promises instead of the traditional callbacks",
   "main": "src/promise-queue-rate-limited.js",
   "dependencies": {
-    "bluebird": "3.3.5"
+    "bluebird": "^3.3.5"
   },
   "keywords": [
     "queue",

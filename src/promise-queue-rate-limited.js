@@ -5,11 +5,12 @@
     /**
      * Creates a new rate limited queue. The queue is created with stopped state, i.e. you have to call start() to run jobs.
      * @param {number} maxCallsPerSecond=1 - The rate limit of this queue in maximum calls per seconds which may be executed at any time. Pass values less than 1 to have less than one call per second, e.g. 1/3 for 3 one call in three seconds at maximum.
-     *
+     * @param logger
      * @constructor
      */
-    function PromiseQueue(maxCallsPerSecond) {
+    function PromiseQueue(maxCallsPerSecond, logger) {
         this.maxCallsPerSecond = typeof(maxCallsPerSecond) === "undefined" ? 1 : maxCallsPerSecond;
+        this.logger = logger;
 
         this.tasks = [];
         this.isActive = false;
@@ -24,48 +25,66 @@
      * @private
      */
     PromiseQueue.prototype.updateTaskSchedule = function () {
+        if (this.logger && this.logger.debug) {
+            this.logger.debug("PromiseQueue.updateTaskSchedule");
+        }
+
         if (this.isEmpty() || this.isStopped()) {
             return;
         }
 
-        var queue = this;
+        const queue = this;
 
         function processNextTask() {
+            if (queue.logger && queue.logger.debug) {
+                queue.logger.debug("PromiseQueue.processNextTask", queue.tasks.length);
+            }
+
             var nextTaskItem = queue.tasks.shift();
             if (nextTaskItem) {
                 try {
-                    var result = nextTaskItem.task.call();
+                    const result = nextTaskItem.task.call();
 
-                    queue.lastTaskTimestamp = Date.now();
+                    if (queue.logger && queue.logger.debug) {
+                        queue.logger.debug("Resolving queued promise", result);
+                    }
 
-                    //console.warn("Resolving promise with " + result);
                     nextTaskItem.resolve(result);
                 } catch (e) {
-                    //console.warn("Rejecting promise with " + e);
                     nextTaskItem.reject(e);
                 }
             }
         }
 
         function scheduleNext(timeoutMillisOverride) {
+            if (queue.logger && queue.logger.debug) {
+                queue.logger.debug("PromiseQueue.scheduleNext", timeoutMillisOverride);
+            }
+
             if (queue.isEmpty()) {
+                queue.currentTaskTimeoutId = null;
                 return;
             }
 
             queue.currentTaskTimeoutId = setTimeout(function () {
+                queue.lastTaskTimestamp = Date.now();
                 processNextTask();
 
-                queue.lastTaskTimestamp = Date.now();
-            }, timeoutMillisOverride && timeoutMillisOverride > 0 ? timeoutMillisOverride : queue.jobIntervalMillis);
+                scheduleNext(queue.jobIntervalMillis);
+            }, timeoutMillisOverride);
         }
 
-        var sinceLastInterval = Date.now() - this.lastTaskTimestamp;
-        if (this.lastTaskTimestamp == null || sinceLastInterval > this.jobIntervalMillis) {
-            //the first task ever
-            processNextTask();
-            scheduleNext();
-        } else {
-            scheduleNext(this.jobIntervalMillis - sinceLastInterval);
+        if (this.currentTaskTimeoutId == null) {
+            if (this.lastTaskTimestamp) {
+                let passedTime = Date.now() - this.lastTaskTimestamp;
+                if (passedTime > this.jobIntervalMillis) {
+                    scheduleNext(this.jobIntervalMillis);
+                } else {
+                    scheduleNext(Math.max(0, this.jobIntervalMillis - passedTime));
+                }
+            } else {
+                scheduleNext(0);
+            }
         }
     };
 
@@ -139,7 +158,7 @@
     PromiseQueue.prototype.add = function (task, append) {
         var self = this;
 
-        return new Promise(function (resolve, reject) {
+        var promise = new Promise(function (resolve, reject) {
             var newTaskItem = {task: task, resolve: resolve, reject: reject};
 
             if (self.isEmpty() || append) {
@@ -147,9 +166,11 @@
             } else {
                 self.tasks.unshift(newTaskItem);
             }
-
-            self.updateTaskSchedule();
         });
+
+        self.updateTaskSchedule();
+
+        return promise;
     };
 
     /**

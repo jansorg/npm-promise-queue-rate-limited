@@ -1,3 +1,26 @@
+var winston = require('winston');
+
+const logger = new (winston.Logger)({
+    transports: [
+        new (winston.transports.Console)({
+            timestamp: function () {
+                function pad(value) {
+                    return (value.toString().length === 1) ? "0" + value : value;
+                }
+
+                const date = new Date();
+                return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds());
+            },
+            formatter: function (options) {
+                return options.timestamp() + ' ' + options.level.toUpperCase() + ' ' + (undefined !== options.message ? options.message : '') +
+                    (options.meta && Object.keys(options.meta).length ? '\t' + JSON.stringify(options.meta) : '' );
+            }
+        })
+    ]
+});
+logger.level = 'debug';
+logger.exitOnError = false;
+
 var test = require('tape');
 var Queue = require('../src/promise-queue-rate-limited.js');
 
@@ -147,17 +170,17 @@ test("New jobs in an empty, started queue must be scheduled", function (t) {
 
     var timestamps = [];
 
-    var q = new Queue(1 / 4);
+    var q = new Queue(1 / 4, logger);
     q.start();
 
     q.append(function () {
         console.log("First: " + new Date().toISOString());
-
-
         timestamps.push(Date.now());
     });
-    t.equals(timestamps.length, 1, "The first task must be executed immediately");
-    t.ok((Date.now() - timestamps[0]) <= 150, "The first task must be executed immediately");
+    setTimeout(()=> {
+        t.equals(timestamps.length, 1, "The first task must be executed immediately");
+        t.ok((Date.now() - timestamps[0]) <= 150, "The first task must be executed immediately");
+    }, 50);
 
     setTimeout(function () {
         //add a new task after one second to be executed after 4 seconds (one task in 4 seconds is executed)
@@ -165,7 +188,7 @@ test("New jobs in an empty, started queue must be scheduled", function (t) {
             console.log("Second: " + new Date().toISOString());
             timestamps.push(Date.now());
         });
-        t.equals(timestamps.length, 1, "Tasks added after the first add call must be executed scheduled, i.e. not immediately.");
+        t.equals(timestamps.length, 1, "Tasks added after the first add call must be executed scheduled, i.e. not immediately: " + timestamps.length);
     }, 1000);
 
     setTimeout(function () {

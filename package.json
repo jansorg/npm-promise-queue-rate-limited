@@ -1,6 +1,6 @@
 {
   "name": "promise-queue-rate-limited",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Enhanced version of queue-rate-limited which uses Bluebird promises instead of the traditional callbacks",
   "main": "src/promise-queue-rate-limited.js",
   "dependencies": {
@@ -23,7 +23,8 @@
     "node >=6.0.0"
   ],
   "devDependencies": {
-    "tape": "4.5.1"
+    "tape": "4.5.1",
+    "winston": "^2.2.0"
   },
   "licenses": [
     {

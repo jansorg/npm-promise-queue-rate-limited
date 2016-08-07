@@ -1,17 +1,18 @@
 {
   "name": "promise-queue-rate-limited",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Enhanced version of queue-rate-limited which uses Bluebird promises instead of the traditional callbacks",
   "main": "src/promise-queue-rate-limited.js",
   "dependencies": {
-    "bluebird": "^3.3.5"
+    "bluebird": "^3.4.1"
   },
   "keywords": [
     "queue",
     "promise",
     "rate limit",
     "jobs",
-    "throttling"
+    "throttling",
+    "bluebird"
   ],
   "author": "J. Ansorg <wallaby.pouch@googlemail.com>",
   "homepage": "https://github.com/jansorg/npm-promise-queue-rate-limited",

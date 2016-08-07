@@ -46,11 +46,12 @@
                     const result = nextTaskItem.task.call();
 
                     if (queue.logger && queue.logger.debug) {
-                        queue.logger.debug("Resolving queued promise", result);
+                        queue.logger.debug("Resolving queued promise", result, result instanceof Promise);
                     }
 
                     nextTaskItem.resolve(result);
                 } catch (e) {
+                    queue.logger.info("rejecting queued promise result", e);
                     nextTaskItem.reject(e);
                 }
             }
